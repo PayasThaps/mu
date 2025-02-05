@@ -11,6 +11,9 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 import joblib
 
+# ✅ MOVE THIS TO THE TOP! (Fixes the error)
+st.set_page_config(page_title="Service Installation Dashboard", layout="wide")
+
 # Load Dataset
 @st.cache_resource
 def load_data():
@@ -69,7 +72,6 @@ def evaluate_models():
 model_metrics = evaluate_models()
 
 # Streamlit Layout
-st.set_page_config(page_title="Service Installation Dashboard", layout="wide")
 st.title("📊 Business Insights Dashboard for Service Installation")
 
 # 🎨 Custom Styling
