@@ -30,31 +30,28 @@ top_features = [
 def preprocess_data(df, top_features):
     X = pd.get_dummies(df[top_features])
     y = df["Installed"]
-    return train_test_split(X, y, test_size=0.2, random_state=42)
+    return train_test_split(X, y, test_size=0.2, random_state=42), X.columns
 
-X_train, X_test, y_train, y_test = preprocess_data(df, top_features)
+(X_train, X_test, y_train, y_test), feature_columns = preprocess_data(df, top_features)
 
 # Train Models
 @st.cache_resource
-def train_models(X_train, y_train):
+def train_models():
     models = {
         "Random Forest": RandomForestClassifier(n_estimators=100, random_state=42),
         "Logistic Regression": LogisticRegression(max_iter=2000),
         "XGBoost": XGBClassifier(eval_metric="logloss")
     }
-    trained_models = {}
-    for name, model in models.items():
-        model.fit(X_train, y_train)
-        trained_models[name] = model
+    trained_models = {name: model.fit(X_train, y_train) for name, model in models.items()}
     return trained_models
 
-trained_models = train_models(X_train, y_train)
+trained_models = train_models()
 
 # Evaluate Models
 @st.cache_resource
-def evaluate_models(models, X_test, y_test):
+def evaluate_models():
     metrics = {}
-    for name, model in models.items():
+    for name, model in trained_models.items():
         y_pred = model.predict(X_test)
         metrics[name] = {
             "Accuracy": accuracy_score(y_test, y_pred),
@@ -64,7 +61,7 @@ def evaluate_models(models, X_test, y_test):
         }
     return metrics
 
-model_metrics = evaluate_models(trained_models, X_test, y_test)
+model_metrics = evaluate_models()
 
 # Streamlit Layout
 st.title("📊 Optimized Service Installation Prediction Dashboard")
@@ -88,7 +85,7 @@ st.pyplot(fig)
 st.header("🔬 Feature Importance in Random Forest")
 rf_model = trained_models["Random Forest"]
 importances = rf_model.feature_importances_
-feature_imp_df = pd.DataFrame({"Feature": X_train.columns, "Importance": importances}).sort_values(by="Importance", ascending=False)
+feature_imp_df = pd.DataFrame({"Feature": feature_columns, "Importance": importances}).sort_values(by="Importance", ascending=False)
 fig, ax = plt.subplots(figsize=(10, 6))
 sns.barplot(x=feature_imp_df["Importance"], y=feature_imp_df["Feature"], palette="viridis", ax=ax)
 ax.set_title("Top Features by Importance", fontsize=16)
@@ -111,7 +108,7 @@ if st.button("Predict Installation"):
         household_income, days_to_accept, days_to_qualify, service_quality, competitor_price,
         days_to_install, bundled_service, discount_availed, signal_strength
     ]], columns=top_features)
-    input_data = pd.get_dummies(input_data).reindex(columns=X_train.columns, fill_value=0)
+    input_data = pd.get_dummies(input_data).reindex(columns=feature_columns, fill_value=0)
     best_model = trained_models["XGBoost"]
     prediction = best_model.predict(input_data)[0]
     if prediction == 1:
@@ -120,4 +117,5 @@ if st.button("Predict Installation"):
         st.warning("❌ The customer may **not** install the service!")
 
 st.info("Built with ❤️ using Streamlit")
+
 
