@@ -18,10 +18,10 @@ def load_data():
 
 df = load_data()
 
-# Define top features
+# Define updated top features (Removed "Days to Install Request")
 top_features = [
     "Household Income Level", "Days to Accept", "Days to Qualify", "Service Quality Rating",
-    "Competitor Price Sensitivity",  "Bundled Service Interest",
+    "Competitor Price Sensitivity", "Bundled Service Interest",
     "Discount Availed (INR)", "Signal Strength"
 ]
 
@@ -98,7 +98,6 @@ days_to_accept = st.number_input("Days to Accept", min_value=0, max_value=7, val
 days_to_qualify = st.number_input("Days to Qualify", min_value=0, max_value=10, value=3)
 service_quality = st.number_input("Service Quality Rating", min_value=1, max_value=5, value=3)
 competitor_price = st.selectbox("Competitor Price Sensitivity", options=df["Competitor Price Sensitivity"].unique())
-days_to_install = st.number_input("Days to Install Request", min_value=0, max_value=24, value=5)
 bundled_service = st.selectbox("Bundled Service Interest", options=df["Bundled Service Interest"].unique())
 discount_availed = st.number_input("Discount Availed (INR)", min_value=0, max_value=500, value=100)
 signal_strength = st.selectbox("Signal Strength", options=df["Signal Strength"].unique())
@@ -106,7 +105,7 @@ signal_strength = st.selectbox("Signal Strength", options=df["Signal Strength"].
 if st.button("Predict Installation"):
     input_data = pd.DataFrame([[
         household_income, days_to_accept, days_to_qualify, service_quality, competitor_price,
-        days_to_install, bundled_service, discount_availed, signal_strength
+        bundled_service, discount_availed, signal_strength
     ]], columns=top_features)
     input_data = pd.get_dummies(input_data).reindex(columns=feature_columns, fill_value=0)
     best_model = trained_models["XGBoost"]
@@ -117,5 +116,3 @@ if st.button("Predict Installation"):
         st.warning("❌ The customer may **not** install the service!")
 
 st.info("Built with ❤️ using Streamlit")
-
-
