@@ -21,7 +21,7 @@ df = load_data()
 # Define top features
 top_features = [
     "Household Income Level", "Days to Accept", "Days to Qualify", "Service Quality Rating",
-    "Competitor Price Sensitivity", "Days to Install Request", "Bundled Service Interest",
+    "Competitor Price Sensitivity",  "Bundled Service Interest",
     "Discount Availed (INR)", "Signal Strength"
 ]
 
