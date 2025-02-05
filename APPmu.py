@@ -1,6 +1,6 @@
 import streamlit as st
+import pandas as np
 import pandas as pd
-import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 from sklearn.ensemble import RandomForestClassifier
@@ -18,7 +18,7 @@ def load_data():
 
 df = load_data()
 
-# Define updated top features (Removed "Days to Install Request")
+# Define features for modeling
 top_features = [
     "Household Income Level", "Days to Accept", "Days to Qualify", "Service Quality Rating",
     "Competitor Price Sensitivity", "Bundled Service Interest",
@@ -64,34 +64,64 @@ def evaluate_models():
 model_metrics = evaluate_models()
 
 # Streamlit Layout
-st.title("📊 Optimized Service Installation Prediction Dashboard")
+st.title("📊 Business Insights Dashboard for Service Installation")
 
-# Section 1: Model Comparison
-st.header("🤖 Model Comparison")
-st.write("Compare different machine learning models on key evaluation metrics.")
-metrics_df = pd.DataFrame(model_metrics).T
-st.dataframe(metrics_df.style.highlight_max(axis=0, color="lightgreen"))
-
-# Visualization
-st.write("### Model Comparison Chart")
-fig, ax = plt.subplots(figsize=(8, 6))
-metrics_df.plot(kind="bar", ax=ax)
-ax.set_title("Model Performance Comparison", fontsize=16)
-ax.set_ylabel("Score", fontsize=14)
-ax.set_xticklabels(metrics_df.index, rotation=45, fontsize=12)
+# Section 1: Customer Segmentation Analysis
+st.header("🔍 Customer Segmentation Analysis")
+segmentation_df = df.groupby("Household Income Level")["Installed"].mean().reset_index()
+fig, ax = plt.subplots(figsize=(8, 5))
+sns.barplot(x="Household Income Level", y="Installed", data=segmentation_df, palette="coolwarm", ax=ax)
+ax.set_title("Installation Rate by Household Income Level")
+ax.set_ylabel("Installation Rate")
 st.pyplot(fig)
 
-# Section 2: Feature Importance
-st.header("🔬 Feature Importance in Random Forest")
-rf_model = trained_models["Random Forest"]
-importances = rf_model.feature_importances_
-feature_imp_df = pd.DataFrame({"Feature": feature_columns, "Importance": importances}).sort_values(by="Importance", ascending=False)
-fig, ax = plt.subplots(figsize=(10, 6))
-sns.barplot(x=feature_imp_df["Importance"], y=feature_imp_df["Feature"], palette="viridis", ax=ax)
-ax.set_title("Top Features by Importance", fontsize=16)
+# Section 2: Churn Prediction Analysis
+st.header("🚨 Churn Prediction Analysis")
+st.write("What factors contribute to customers **not installing** the service?")
+churn_df = df.groupby("Competitor Price Sensitivity")["Installed"].mean().reset_index()
+fig, ax = plt.subplots(figsize=(8, 5))
+sns.barplot(x="Competitor Price Sensitivity", y="Installed", data=churn_df, palette="coolwarm", ax=ax)
+ax.set_title("Installation Rate by Competitor Price Sensitivity")
 st.pyplot(fig)
 
-# Section 3: Install Prediction
+# Section 3: Impact of Discounts on Installations
+st.header("💰 Discount Impact on Installations")
+st.write("Are discounts leading to higher installation rates?")
+fig, ax = plt.subplots(figsize=(8, 5))
+sns.boxplot(x=df["Installed"], y=df["Discount Availed (INR)"], palette="coolwarm", ax=ax)
+ax.set_title("Discounts Availed vs. Installation")
+st.pyplot(fig)
+
+# Section 4: Service Quality vs Installations
+st.header("📡 Service Quality & Signal Strength Impact")
+fig, ax = plt.subplots(figsize=(8, 5))
+sns.boxplot(x=df["Installed"], y=df["Service Quality Rating"], palette="coolwarm", ax=ax)
+ax.set_title("Service Quality Rating & Installation")
+st.pyplot(fig)
+
+fig, ax = plt.subplots(figsize=(8, 5))
+sns.countplot(x=df["Signal Strength"], hue=df["Installed"], palette="coolwarm", ax=ax)
+ax.set_title("Signal Strength & Installation Rates")
+st.pyplot(fig)
+
+# Section 5: Marketing Channel Performance
+st.header("📢 Marketing Channel Effectiveness")
+st.write("Which marketing channels are performing the best?")
+marketing_df = df.groupby("Marketing Channel")["Installed"].mean().reset_index()
+fig, ax = plt.subplots(figsize=(8, 5))
+sns.barplot(x="Marketing Channel", y="Installed", data=marketing_df, palette="coolwarm", ax=ax)
+ax.set_title("Conversion Rate by Marketing Channel")
+st.pyplot(fig)
+
+# Section 6: Seasonal Trends in Installations
+st.header("📅 Seasonal Trends in Installations")
+st.write("How do installations change over time?")
+fig, ax = plt.subplots(figsize=(8, 5))
+sns.lineplot(x=df["Lead Created Month"], y=df["Installed"].rolling(5).mean(), marker="o", ax=ax)
+ax.set_title("Installations Over Time")
+st.pyplot(fig)
+
+# Section 7: Install Prediction
 st.header("🔮 Predict Service Installation")
 household_income = st.selectbox("Household Income Level", options=df["Household Income Level"].unique())
 days_to_accept = st.number_input("Days to Accept", min_value=0, max_value=7, value=2)
