@@ -3,13 +3,16 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 import numpy as np
-from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
+from xgboost import XGBClassifier
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, classification_report
 
 # Load Dataset
 df = pd.read_csv("dataset_cleaned.csv")
 
-# Train Random Forest globally with top 10 features
+# Define top 10 features based on importance
 top_features = [
     "Days to Install Request", "Days to Qualify", "Days to Accept", "Lifetime Value (INR)",
     "Marketing Spend (INR)", "Discount Availed (INR)", "Time Spent on Research (Days)",
@@ -18,21 +21,59 @@ top_features = [
 X = df[top_features]
 y = df["Installed"]
 
+# Train-Test Split
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-rf_model = RandomForestClassifier(n_estimators=100, random_state=42)
-rf_model.fit(X_train, y_train)
+# Models
+models = {
+    "Random Forest": RandomForestClassifier(n_estimators=100, random_state=42),
+    "Logistic Regression": LogisticRegression(max_iter=1000),
+    "XGBoost": XGBClassifier(use_label_encoder=False, eval_metric="logloss")
+}
+
+# Train and Evaluate Models
+model_metrics = {}
+for name, model in models.items():
+    model.fit(X_train, y_train)
+    y_pred = model.predict(X_test)
+    metrics = {
+        "Accuracy": accuracy_score(y_test, y_pred),
+        "Precision": precision_score(y_test, y_pred, zero_division=0),
+        "Recall": recall_score(y_test, y_pred, zero_division=0),
+        "F1 Score": f1_score(y_test, y_pred, zero_division=0),
+    }
+    model_metrics[name] = metrics
 
 # Sidebar
 st.sidebar.title("📊 Explore Dashboard")
-page = st.sidebar.radio("Choose a section", ["Feature Importance", "Install Prediction"])
+page = st.sidebar.radio("Choose a section", ["Model Comparison", "Feature Importance", "Install Prediction"])
+
+# Model Comparison Section
+if page == "Model Comparison":
+    st.title("🤖 Model Comparison")
+    st.write("Compare different machine learning models on key evaluation metrics.")
+
+    # Display Metrics
+    metrics_df = pd.DataFrame(model_metrics).T
+    st.write("### Model Performance Metrics")
+    st.dataframe(metrics_df.style.highlight_max(axis=0, color="lightgreen"))
+
+    # Visualization
+    st.write("### Model Comparison Chart")
+    fig, ax = plt.subplots(figsize=(8, 6))
+    metrics_df.plot(kind="bar", ax=ax)
+    ax.set_title("Model Performance Comparison", fontsize=16)
+    ax.set_ylabel("Score", fontsize=14)
+    ax.set_xticklabels(metrics_df.index, rotation=45, fontsize=12)
+    st.pyplot(fig)
 
 # Feature Importance Section
-if page == "Feature Importance":
-    st.title("🔬 Feature Importance in Install Prediction")
+elif page == "Feature Importance":
+    st.title("🔬 Feature Importance in Random Forest")
     st.write("The model uses the following top 10 features to make predictions:")
 
-    # Get feature importance
+    # Random Forest Feature Importance
+    rf_model = models["Random Forest"]
     importances = rf_model.feature_importances_
     feature_imp_df = pd.DataFrame({"Feature": top_features, "Importance": importances}).sort_values(by="Importance", ascending=False)
 
@@ -44,16 +85,16 @@ if page == "Feature Importance":
     ax.set_ylabel("Feature", fontsize=14)
     st.pyplot(fig)
 
-    # Display Feature Importance Table
+    # Display Table
     st.write("### Feature Importance Table")
     st.dataframe(feature_imp_df.style.highlight_max(axis=0, color='lightblue'))
 
 # Install Prediction Section
 elif page == "Install Prediction":
     st.title("🔮 Predict Service Installation")
+    st.write("Provide the following details about the customer:")
 
     # Input Form
-    st.write("Provide the following details about the customer:")
     days_to_install = st.number_input("Days to Install Request", min_value=0, max_value=24, value=5)
     days_to_qualify = st.number_input("Days to Qualify", min_value=0, max_value=10, value=3)
     days_to_accept = st.number_input("Days to Accept", min_value=0, max_value=7, value=2)
@@ -70,7 +111,8 @@ elif page == "Install Prediction":
         input_data = np.array([[days_to_install, days_to_qualify, days_to_accept, lifetime_value,
                                 marketing_spend, discount_availed, time_spent_research,
                                 distance_service_hub, lead_created_day, network_downtime]])
-        prediction = rf_model.predict(input_data)[0]
+        best_model = models["XGBoost"]  # Use the best-performing model
+        prediction = best_model.predict(input_data)[0]
 
         if prediction == 1:
             st.success("✅ The customer is likely to install the service!")
